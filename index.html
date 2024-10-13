@@ -3,156 +3,157 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width" />
-  <title>Lab 2</title>
+  <title>Lab 3</title>
 </head>
 <body>
 <input id="search-bar" type="search" />
 <button id="search-button" type="button">Search</button>
 <div id="dictionary-entry"></div>
 <script>
-  searchButton = document.getElementById("search-button");
-  searchBar = document.getElementById("search-bar");
+const searchButton = document.getElementById("search-button");
+const searchBar = document.getElementById("search-bar");
 
-  function getData(word) {
-    const url =
-      "https://api.dictionaryapi.dev/api/v2/entries/en/" + word.toString();
-    try {
-      const response = fetch(url);
-      return response;
-    } catch (error) {
-      console.log(error.message);
-    }
+async function fetchData(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) 
+      throw new Error(response.status); 
+    return await response.json();
+  }catch (error) {
+    throw error;
+  }
+}
+
+async function processRequest() {
+  const entryDiv = document.getElementById("dictionary-entry");
+  entryDiv.innerHTML = "";
+  const word = searchBar.value.toString();
+
+  const dictionaryUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
+  const bookUrl = `https://gutendex.com/books?search=${word}`;
+  const quoteUrl = `https://bolls.life/find/NRSVCE/?search=${word}&match_case=false&match_whole=true`;
+
+  Promise.all([
+    fetchData(dictionaryUrl),
+    fetchData(bookUrl),
+    fetchData(quoteUrl)
+  ]).then(([dictionaryData, bookData, quoteData]) => {
+    
+    localStorage.setItem('word', word);
+    localStorage.setItem('dictionaryData', JSON.stringify(dictionaryData));
+    localStorage.setItem('bookData', JSON.stringify(bookData));
+    localStorage.setItem('quoteData', JSON.stringify(quoteData));
+    
+    const wordEntry = document.createElement("div");
+    for (diffWord of dictionaryData)
+      wordEntry.append(createWordMeaning(diffWord));
+  
+    entryDiv.append(wordEntry);
+    entryDiv.append(createBookSection(bookData.results, word));
+    entryDiv.append(createQuoteSection(quoteData, word));
+  })
+  .catch(error => {
+    entryDiv.innerHTML = "<h2>Word does not exist</h2>";
+    console.error(error);
+    return;
+  })
+}
+
+function createWordMeaning(diffWord) {
+  const wordMeaning = document.createElement("div");
+  const wordText = document.createElement("h2");
+  wordText.textContent = diffWord.word;
+
+  const wordPhonetic = document.createElement("p");
+  wordPhonetic.textContent = diffWord.phonetic;
+  wordMeaning.append(wordText, wordPhonetic);
+
+  const meaning = diffWord.meanings[0];
+  const partOfSpeech = document.createElement("div");
+  partOfSpeech.textContent = meaning.partOfSpeech;
+  wordMeaning.append(partOfSpeech);
+
+  const listOfDefinitions = document.createElement("ul");
+  meaning.definitions.forEach(definition => {
+    const listItem = document.createElement("li");
+    listItem.textContent = definition.definition;
+    listOfDefinitions.append(listItem);
+  });
+  wordMeaning.append(listOfDefinitions);
+
+  addSimilarWordsButton(wordMeaning, meaning.synonyms, true);
+  addSimilarWordsButton(wordMeaning, meaning.antonyms, false);
+
+  return wordMeaning;
+}
+
+function addSimilarWordsButton(wordMeaning, similarWords, flag){
+  const textContent = flag ? "Synonyms" : "Antonyms"; // flag is for flagging if synonyms or antonyms
+  const relatedWordsButton = document.createElement("button");
+  relatedWordsButton.textContent = "Show " + textContent;
+  wordMeaning.append(relatedWordsButton);
+
+  relatedWordsButton.addEventListener("click", () => {
+    const wordDiv = document.createElement("div");
+    wordDiv.textContent = similarWords && similarWords.length > 0
+      ? textContent + ": " + similarWords.join(", ")
+      : "No " + textContent + " avialable";
+    wordMeaning.append(wordDiv);
+    relatedWordsButton.disabled = true;
+  });
+}
+
+function createBookSection(books, word) {
+  const bookSection = document.createElement("div");
+  const bookHeader = document.createElement("h3");
+  bookHeader.textContent = `Books containing ${word}`;
+  bookSection.append(bookHeader);
+
+  books.forEach(book => {
+    const title = document.createElement("p");
+    title.textContent = book.title;
+    bookSection.append(title);
+  });
+
+  return bookSection;
+}
+
+function createQuoteSection(quotes, word) {
+  const quoteSection = document.createElement("div");
+  const quoteHeader = document.createElement("h3");
+  quoteHeader.textContent = `Quotes containing ${word}`;
+  quoteSection.append(quoteHeader);
+  
+  for (let i = 0; i < Math.min(quotes.length, 5); i++){
+    const title = document.createElement("p");
+    title.append(quotes[i]["text"]);
+    quoteSection.append(title);
   }
 
-  function getBook(word) {
-    const url = "https://gutendex.com/books?search=" + word.toString();
-    try {
-      const response = fetch(url);
-      return response;
-    } catch (error) {
-      console.log(error.message);
-    }
-  }
+  return quoteSection;
+}
 
-  function getQuote(word) {
-    const url =
-      "https://bolls.life/find/NRSVCE/?search=" +
-      word.toString() +
-      "&match_case=false&match_whole=true";
-    try {
-      const response = fetch(url);
-      return response;
-    } catch (error) {
-      console.log(error.message);
-    }
-  }
-
-  async function processRequest() {
-    entryDiv = document.getElementById("dictionary-entry");
+function loadStoredData() {
+  const word = localStorage.getItem('word');
+  if (word) {
+    const entryDiv = document.getElementById("dictionary-entry");
     entryDiv.innerHTML = "";
-    word = searchBar.value;
-    resp = await getData(word);
 
-    if (!resp || !resp.ok) {
-      entryDiv.innerHTML = "<h2>Word does not exist</h2>";
-    } else {
-      wordEntry = document.createElement("div");
-      json = await resp.json();
+    const dictionaryData = JSON.parse(localStorage.getItem('dictionaryData'));
+    const bookData = JSON.parse(localStorage.getItem('bookData'));
+    const quoteData = JSON.parse(localStorage.getItem('quoteData'));
 
-      for (diffWord of json) {
-        const wordMeaning = document.createElement("div");
-        wordText = document.createElement("h2");
-        wordText.append(diffWord["word"]);
-
-        const meaning = diffWord["meanings"][0];
-        wordPhonetic = document.createElement("p");
-        wordPhonetic.textContent = diffWord["phonetic"];
-        wordMeaning.append(wordText);
-        wordMeaning.append(wordPhonetic);
-
-        partOfSpeech = document.createElement("div");
-        partOfSpeech.textContent = meaning["partOfSpeech"];
-        wordMeaning.append(partOfSpeech);
-
-        listOfDefinitions = document.createElement("ul");
-        for (definition of meaning["definitions"]) {
-          listItem = document.createElement("li");
-          listItem.textContent = definition["definition"];
-          listOfDefinitions.append(listItem);
-        }
-        wordMeaning.append(listOfDefinitions);
-
-        const synonymButton = document.createElement("button");
-        synonymButton.textContent = "Show Synonyms";
-        wordMeaning.append(synonymButton);
-
-        synonymButton.addEventListener(
-          "click",
-          () => {
-            synonymDiv = document.createElement("div");
-            synonyms = meaning["synonyms"];
-
-            if (synonyms && synonyms.length > 0)
-              synonymDiv.textContent = "Synonyms: " + synonyms.join(", ");
-            else synonymDiv.textContent = "No Synonyms Available";
-
-            wordMeaning.append(synonymDiv);
-            synonymButton.disabled = true;
-          },
-          (once = true)
-        );
-
-        const antonymButton = document.createElement("button");
-        antonymButton.textContent = "Show antonyms";
-        wordMeaning.append(antonymButton);
-
-        antonymButton.addEventListener("click", () => {
-          antonymDiv = document.createElement("div");
-          antonyms = meaning["antonyms"];
-
-          if (antonyms && antonyms.length > 0)
-            antonymDiv.textContent = "Antonyms: " + antonyms.join(", ");
-          else antonymDiv.textContent = "No Antonyms Available";
-
-          wordMeaning.append(antonymDiv);
-          antonymButton.disabled = true;
-        });
-
-        wordEntry.append(wordMeaning);
-      }
-      entryDiv.append(wordEntry);
-
-      bookQuery = await getBook(word);
-      bookData = await bookQuery.json();
-
-      bookSection = document.createElement("div");
-      bookHeader = document.createElement("h3");
-      bookHeader.append("Books containing " + word);
-      bookSection.append(bookHeader);
-      for (const book in bookData["results"]) {
-        const title = document.createElement("p");
-        title.append(bookData["results"][book]["title"]);
-        bookSection.append(title);
-      }
-      entryDiv.append(bookSection);
-
-      quoteQuery = await getQuote(word);
-      quoteData = await quoteQuery.json();
-
-      quoteSection = document.createElement("div");
-      quoteHeader = document.createElement("h3");
-      quoteHeader.append("Quotes containing " + word);
-      quoteSection.append(quoteHeader);
-      for (let i = 0; i < Math.min(quoteData.length, 5); i++) {
-        const title = document.createElement("p");
-        title.append(quoteData[i]["text"]);
-        quoteSection.append(title);
-      }
-      entryDiv.append(quoteSection);
-    }
+    const wordEntry = document.createElement("div");
+    for (const diffWord of dictionaryData) 
+      wordEntry.append(createWordMeaning(diffWord));
+    entryDiv.append(wordEntry);
+    entryDiv.append(createBookSection(bookData.results, word));
+    entryDiv.append(createQuoteSection(quoteData, word));
   }
+}
 
-  searchButton.addEventListener("click", processRequest);
+document.addEventListener('DOMContentLoaded', loadStoredData);
+searchButton.addEventListener("click", processRequest);
 </script>
 </body>
 </html>
