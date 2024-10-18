@@ -7,6 +7,9 @@
 </head>
 <body>
 <div id="three-div"></div>
+<div id="animation-div"
+style="text-align: center;font-size: xx-large; font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;"
+>Refresh for a treat</div>
 <input id="search-bar" type="search" />
 <button id="search-button" type="button">Search</button>
 <div id="dictionary-entry"></div>
@@ -42,6 +45,20 @@ function animate() {
   renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(animate);
+
+function getColor(){return Math.floor(Math.random() * 255);}
+
+document.getElementById("animation-div").animate(
+  [
+    {color:'chocolate'},
+    {color:`rgb(${getColor()}, ${getColor()}, ${getColor()})`},
+    {color:`rgb(${getColor()}, ${getColor()}, ${getColor()})`},
+    {color:`rgb(${getColor()}, ${getColor()}, ${getColor()})`},
+    {color:`rgb(${getColor()}, ${getColor()}, ${getColor()})`},
+    {color:'chocolate'},
+  ],
+  {duration: 3000, iterations: Infinity,}
+)
 </script>
 
 <script>
