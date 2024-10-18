@@ -9,6 +9,7 @@
 <input id="search-bar" type="search" />
 <button id="search-button" type="button">Search</button>
 <div id="dictionary-entry"></div>
+<div id="audio-div"></div>
 <script>
 const searchButton = document.getElementById("search-button");
 const searchBar = document.getElementById("search-bar");
@@ -17,18 +18,34 @@ async function fetchData(url) {
   try {
     const response = await fetch(url);
     if (!response.ok) 
-      throw new Error(response.status); 
-    return await response.json();
+    throw new Error(response.status); 
+  return await response.json();
   }catch (error) {
     throw error;
   }
 }
 
+function playAudio(){
+  const audioDiv = document.getElementById("audio-div");
+  const audioElement = document.createElement("audio");
+  audioDiv.append(audioElement);
+  audioElement.src = "PokemonCenter.mp3";
+  const audioContext = new AudioContext();
+  const track = audioContext.createMediaElementSource(audioElement);
+  const gainNode = audioContext.createGain();
+  gainNode.gain.value = 0.2;
+  track.connect(gainNode).connect(audioContext.destination);
+  audioElement.play();
+  setTimeout(() => {audioElement.pause();}, 5000);
+}
+
+
 async function processRequest() {
+  playAudio();
   const entryDiv = document.getElementById("dictionary-entry");
   entryDiv.innerHTML = "";
   const word = searchBar.value.toString();
-
+  
   const dictionaryUrl = `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`;
   const bookUrl = `https://gutendex.com/books?search=${word}`;
   const quoteUrl = `https://bolls.life/find/NRSVCE/?search=${word}&match_case=false&match_whole=true`;
