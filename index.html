@@ -6,10 +6,44 @@
   <title>Lab 3</title>
 </head>
 <body>
+<div id="three-div"></div>
 <input id="search-bar" type="search" />
 <button id="search-button" type="button">Search</button>
 <div id="dictionary-entry"></div>
 <div id="audio-div"></div>
+<script type="importmap">{"imports": {"three": "https://cdn.jsdelivr.net/npm/three@v0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@v0.169.0/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three'; 
+const threeDiv = document.getElementById("three-div");
+const scene = new THREE.Scene();
+const bgCol = new THREE.Color(Math.random(), Math.random(), Math.random());
+scene.background = bgCol;
+const camera = new THREE.PerspectiveCamera( 75, (window.innerWidth) / (window.innerHeight/3), 0.1, 1000 );
+camera.position.z = 5;
+
+const renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight/3);
+threeDiv.append(renderer.domElement);
+
+const torusColor = new THREE.Color(Math.random(), Math.random(), Math.random());
+
+const tG = new THREE.TorusGeometry(2, 0.75, 16, 100); 
+const tM = new THREE.MeshBasicMaterial( { color: torusColor} ); 
+const torus = new THREE.Mesh( tG, tM );
+torus.rotation.x = Math.floor(Math.random() * 360);
+torus.rotation.y = Math.floor(Math.random() * 360);
+torus.rotation.z = Math.floor(Math.random() * 360);
+scene.add(torus);
+
+function animate() {
+  torus.rotation.x += (Math.random() * (0.15 - 0.01) + 0.01);
+  torus.rotation.y += (Math.random() * (0.15 - 0.01) + 0.01);
+  torus.rotation.z += (Math.random() * (0.15 - 0.01) + 0.01);
+  renderer.render(scene, camera);
+}
+renderer.setAnimationLoop(animate);
+</script>
+
 <script>
 const searchButton = document.getElementById("search-button");
 const searchBar = document.getElementById("search-bar");
@@ -38,7 +72,6 @@ function playAudio(){
   audioElement.play();
   setTimeout(() => {audioElement.pause();}, 5000);
 }
-
 
 async function processRequest() {
   playAudio();
